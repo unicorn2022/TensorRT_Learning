@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2020-2021, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -262,8 +262,8 @@ __inline__ size_t dataTypeToSize(DataType dataType)
         return 1;
     case DataType::kUINT8:
         return 1;
-    //case DataType::kFP8:
-        //return 1;
+    // case DataType::kFP8:
+    //     return 1;
     default:
         return 4;
     }
