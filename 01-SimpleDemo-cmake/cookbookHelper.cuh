@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2020-2021, NVIDIA CORPORATION.  All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef COOKBOOKHELPER_CUH
 #define COOKBOOKHELPER_CUH
 
@@ -246,7 +230,7 @@ template void printArrayInformation(const int *, Dims32, std::string, bool, bool
 template void printArrayInformation(const bool *, Dims32, std::string, bool, bool, int);
 
 // get the size in byte of a TensorRT data type
-__inline__ size_t dataTypeToSize(DataType dataType)
+size_t dataTypeToSize(DataType dataType)
 {
     switch (dataType)
     {
@@ -270,7 +254,7 @@ __inline__ size_t dataTypeToSize(DataType dataType)
 }
 
 // get the string of a TensorRT shape
-__inline__ std::string shapeToString(Dims32 dim)
+std::string shapeToString(Dims32 dim)
 {
     std::string output("(");
     if (dim.nbDims == 0)
@@ -286,7 +270,7 @@ __inline__ std::string shapeToString(Dims32 dim)
 }
 
 // get the string of a TensorRT data type
-__inline__ std::string dataTypeToString(DataType dataType)
+std::string dataTypeToString(DataType dataType)
 {
     switch (dataType)
     {
@@ -306,7 +290,7 @@ __inline__ std::string dataTypeToString(DataType dataType)
 }
 
 // get the string of a TensorRT data format
-__inline__ std::string formatToString(TensorFormat format)
+std::string formatToString(TensorFormat format)
 {
     switch (format)
     {
@@ -335,7 +319,7 @@ __inline__ std::string formatToString(TensorFormat format)
 }
 
 // get the string of a TensorRT layer kind
-__inline__ std::string layerTypeToString(LayerType layerType)
+std::string layerTypeToString(LayerType layerType)
 {
     switch (layerType)
     {
