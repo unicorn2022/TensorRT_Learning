@@ -12,7 +12,7 @@ include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${TENSORRT_ROOT}/include)
 
 # 添加可执行文件
-add_executable(SimpleDemoCMake main.cpp cookbookHelper.cuh)
+add_executable(SimpleDemoCMake main.cpp TensorRTUtils.h TensorRTUtils.cpp)
  
 # 链接TensorRT的库文件
 link_directories(${TENSORRT_ROOT}/lib)
