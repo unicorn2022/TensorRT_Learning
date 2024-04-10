@@ -24,7 +24,7 @@ class Logger : public ILogger {
  * \param[in] path 文件路径
  * \return 读取到的数据
 */
-static std::string read_file(const std::string& path){
+static std::string readFile(const std::string& path){
     std::string buffer;
     std::ifstream stream(path.c_str(), std::ios::binary);
 
@@ -36,25 +36,23 @@ static std::string read_file(const std::string& path){
     return buffer;
 }
 
-
 /** 将二进制数据写入文件
  * \param[in] buffer 二进制数据
  * \param[in] size 数据大小
  * \param[in] path 文件路径
 */
-static void write_file(void* buffer, size_t size, const std::string& path) {
+static void writeFile(void* buffer, size_t size, const std::string& path) {
     std::ofstream stream(path.c_str(), std::ios::binary);
     if(stream){
         stream.write(static_cast<char*>(buffer), size);
     }
 }
 
-
 /** 创建 cuda 推理引擎
  * \param[in] onnx_model_path onnx模型文件路径
  * \return cuda 推理引擎
 */
-static ICudaEngine* create_cuda_engine(const std::string& onnx_model_path){
+static ICudaEngine* createCudaEngine(const std::string& onnx_model_path){
     const auto explicit_batch = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     std::unique_ptr<IBuilder, Destroy<IBuilder>> builder{createInferBuilder(global_logger)};
     std::unique_ptr<INetworkDefinition, Destroy<INetworkDefinition>> network{builder->createNetworkV2(explicit_batch)};
@@ -108,11 +106,11 @@ static ICudaEngine* create_cuda_engine(const std::string& onnx_model_path){
  * \param[in] model_path 文件路径
  * \return cuda 推理引擎
 */
-static ICudaEngine* get_cuda_engine(const std::string& model_path){
+static ICudaEngine* getCudaEngine(const std::string& model_path){
     ICudaEngine* engine{nullptr};
 
     /* 读取 onnx 文件 */
-    std::string buffer = read_file(model_path);
+    std::string buffer = readFile(model_path);
     std::cout << "Read model from path: " << model_path << std::endl;
 
     /* 尝试 deserialize 引擎*/
@@ -123,11 +121,11 @@ static ICudaEngine* get_cuda_engine(const std::string& model_path){
 
     /* 创建 cuda 推理引擎*/
     if (!engine) {
-        engine = create_cuda_engine(model_path);
+        engine = createCudaEngine(model_path);
         if (engine) {
             std::unique_ptr<IHostMemory, Destroy<IHostMemory>> engine_plan{engine->serialize()};
             // 保存为 tensorRT 的文件格式, 供后续使用
-            write_file(engine_plan->data(), engine_plan->size(), model_path);
+            writeFile(engine_plan->data(), engine_plan->size(), model_path);
         } else {
             std::cerr << "TensorRT engine build failed !!!\n";
         }
@@ -136,26 +134,27 @@ static ICudaEngine* get_cuda_engine(const std::string& model_path){
     return engine;
 }
 
-/** 初始化 tensorRT 上下文
- * \param[out] engine 推理引擎
- * \param[out] context tensorRT上下文
- * \param[in] model_path 模型路径
-*/
-void init_tensorRT(
-    std::unique_ptr<ICudaEngine, Destroy<ICudaEngine>>& engine, 
-    std::unique_ptr<IExecutionContext, Destroy<IExecutionContext>>& context, 
-    const std::string& model_path
-) {
-    engine.reset(get_cuda_engine(model_path));
+
+
+void TensorRTUtils::initTensorRT(const std::string& model_path) {
+    /* 创建推理引擎 */
+    engine.reset(getCudaEngine(model_path));
+    /* 创建 TensorRT 上下文 */
     context.reset(engine->createExecutionContext());
+
+    /* 输出 binding 信息*/
+    std::cout << "Engine has binding num: " << engine->getNbBindings() << std::endl;
+    Dims dims_input{ context->getBindingDimensions(0) };
+    std::cout << " dim: [";
+    for (int k = 0; k < dims_input.nbDims; k++) 
+        std::cout << dims_input.d[k] << ", ";
+    std::cout << "]" << '\n';
+
+    /* 设置 TensorRT 上下文的 binding 信息 */
+    context->setBindingDimensions(0, dims_input);
 }
 
-/** 获取 CPU&GPU shared buffer 指针
- * \param[out] shared_handle 
- * \param[out] bytes buffer 大小
- * \return buffer 指针
-*/
-void* get_shared_device_ptr(void* shared_handle, uint32_t bytes) {
+void* TensorRTUtils::getSharedDevicePtr(void* shared_handle, uint32_t bytes) {
     if (shared_handle == NULL) return nullptr;
 
     // 创建 shared memory buffer 的 descriptor

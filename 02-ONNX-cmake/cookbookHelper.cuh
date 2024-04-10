@@ -17,10 +17,10 @@
 #include <process.h>
 #include <vector>
 
-/* ¼ì²é cuda runtime API µÄÔËĞĞÊÇ·ñ³É¹¦ */ 
+/* æ£€æŸ¥ cuda runtime API çš„è¿è¡Œæ˜¯å¦æˆåŠŸ */ 
 #define CHECK(call) check(call, __LINE__, __FILE__)
 
-/* ¼ì²é cuda runtime API µÄÔËĞĞÊÇ·ñ³É¹¦ */ 
+/* æ£€æŸ¥ cuda runtime API çš„è¿è¡Œæ˜¯å¦æˆåŠŸ */ 
 bool check(cudaError_t e, int iLine, const char *szFile) {
     if (e != cudaSuccess) {
         std::cout << "CUDA runtime API error " << cudaGetErrorName(e) << " at line " << iLine << " in file " << szFile << std::endl;
@@ -45,7 +45,7 @@ using namespace nvinfer1;
 #define CEIL_DIVIDE(X, Y) (((X) + (Y)-1) / (Y))
 #define ALIGN_TO(X, Y)    (CEIL_DIVIDE(X, Y) * (Y))
 
-/* Êä³ö GPU Half */
+/* è¾“å‡º GPU Half */
 __global__ static void printGPUHalf(const half *in, const int n = 10) {
     printf("\n");
     for (int i = 0; i < n; ++i) {
@@ -55,7 +55,7 @@ __global__ static void printGPUHalf(const half *in, const int n = 10) {
     return;
 }
 
-/* Êä³ö GPU Float */
+/* è¾“å‡º GPU Float */
 __global__ static void printGPUFloat(float *in, const int n = 10) {
     printf("\n");
     for (int i = 0; i < n; ++i) {
@@ -65,7 +65,7 @@ __global__ static void printGPUFloat(float *in, const int n = 10) {
     return;
 }
 
-/* Êä³ö GPU Int */
+/* è¾“å‡º GPU Int */
 __global__ static void printGPUInt(const int *in, const int n = 10) {
     printf("\n");
     for (int i = 0; i < n; ++i) {
@@ -75,7 +75,7 @@ __global__ static void printGPUInt(const int *in, const int n = 10) {
     return;
 }
 
-/* ÈÕÖ¾¼ÇÂ¼Æ÷ */
+/* æ—¥å¿—è®°å½•å™¨ */
 class Logger : public ILogger {
 public:
     Severity reportableSeverity;
@@ -108,7 +108,7 @@ public:
     }
 };
 
-/* Êä³ö tensor µÄ shape */
+/* è¾“å‡º tensor çš„ shape */
 void printShape(Dims32 &dim) {
     std::cout << "[";
     for (int i = 0; i < dim.nbDims; ++i) {
@@ -118,7 +118,7 @@ void printShape(Dims32 &dim) {
     return;
 }
 
-/* Êä³ö array µÄÊı¾İ */
+/* è¾“å‡º array çš„æ•°æ® */
 template<typename T>
 void printArrayRecursion(const T *pArray, Dims32 dim, int iDim, int iStart) {
     if (iDim == dim.nbDims - 1) {
@@ -139,7 +139,7 @@ void printArrayRecursion(const T *pArray, Dims32 dim, int iDim, int iStart) {
     return;
 }
 
-/* Êä³ö array µÄĞÅÏ¢ */
+/* è¾“å‡º array çš„ä¿¡æ¯ */
 template<typename T>
 void printArrayInformation(const T *pArray, Dims32 dim, std::string name = std::string(""), bool bPrintInformation = true, bool bPrintArray = false, int n = 10) {
     // print shape information
@@ -211,7 +211,7 @@ template void printArrayInformation(const char *, Dims32, std::string, bool, boo
 template void printArrayInformation(const int *, Dims32, std::string, bool, bool, int);
 template void printArrayInformation(const bool *, Dims32, std::string, bool, bool, int);
 
-/* DataType => ×Ö½ÚÊı */
+/* DataType => å­—èŠ‚æ•° */
 size_t dataTypeToSize(DataType dataType) {
     switch (dataType) {
     case DataType::kFLOAT:

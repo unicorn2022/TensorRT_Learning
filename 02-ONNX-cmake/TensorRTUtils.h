@@ -20,39 +20,39 @@ struct Destroy {
     }
 };
 
-class CudaStream {
+
+class TensorRTUtils{
 public:
-    CudaStream() {
-        cudaStreamCreate(&mStream_);
+    /**
+     * \param[in] model_path 模型路径
+     * \param[in] input_size 输入通道数
+     * \param[in] output_size 输出通道数
+    */
+    TensorRTUtils(const std::string& model_path, int input_size, int output_size)
+        : input_size(input_size), output_size(output_size) {
+        initTensorRT(model_path);
     }
 
-    operator cudaStream_t() {
-        return mStream_;
-    }
+    /** 获取 CPU&GPU shared buffer 指针
+     * \param[out] shared_handle 
+     * \param[out] bytes buffer 大小
+     * \return buffer 指针
+    */
+    void* getSharedDevicePtr(void* shared_handle, uint32_t bytes);
 
-    ~CudaStream() {
-        cudaStreamDestroy(mStream_);
-    }
+    ICudaEngine* getTensorRTEngine() { return engine.get(); }
+    IExecutionContext* getTensorRTContext() { return context.get(); } 
 
 private:
-    cudaStream_t mStream_;
+    std::unique_ptr<ICudaEngine, Destroy<ICudaEngine>> engine{nullptr};
+    std::unique_ptr<IExecutionContext, Destroy<IExecutionContext>> context{nullptr}; 
+    const int input_size;
+    const int output_size;
+
+private:
+    /** 初始化 tensorRT 上下文
+     * \param[in] model_path 模型路径
+    */
+    void initTensorRT(const std::string& model_path);
 };
 
-
-/** 初始化 tensorRT 上下文
- * \param[out] engine 推理引擎
- * \param[out] context tensorRT上下文
- * \param[in] model_path 模型路径
-*/
-void init_tensorRT(
-    std::unique_ptr<ICudaEngine, Destroy<ICudaEngine>>& engine, 
-    std::unique_ptr<IExecutionContext, Destroy<IExecutionContext>>& context, 
-    const std::string& model_path
-);
-
-/** 获取 CPU&GPU shared buffer 指针
- * \param[out] shared_handle 
- * \param[out] bytes buffer 大小
- * \return buffer 指针
-*/
-void* get_shared_device_ptr(void* shared_handle, uint32_t bytes);
