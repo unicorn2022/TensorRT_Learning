@@ -3,7 +3,7 @@ import numpy as np
 import tensorrt as trt
 from cuda import cudart
 
-trtFile = "./model.plan"
+trtFile = "./arm.trt"
 # 输入数据
 data = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
 

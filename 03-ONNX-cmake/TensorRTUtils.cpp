@@ -1,10 +1,11 @@
 #include "TensorRTUtils.h"
+using namespace nvinfer1;
 
 /* CUDA调用的检测函数 */
 #define CHECK(call) check(call, __LINE__, __FILE__)
 
-/* 检查 cuda runtime API 的运行是否成功 */ 
-static bool check(cudaError_t e, int iLine, const char *szFile) {
+/* 检查 cuda runtime API 的运行是否成功 */
+bool check(cudaError_t e, int iLine, const char *szFile) {
     if (e != cudaSuccess) {
         std::cout << "CUDA runtime API error " << cudaGetErrorName(e) << " at line " << iLine << " in file " << szFile << std::endl;
         return false;
@@ -24,13 +25,16 @@ class Logger : public ILogger {
  * \param[in] path 文件路径
  * \return 读取到的数据
 */
-static std::string readFile(const std::string& path){
+std::string readFile(const std::string& path){
     std::string buffer;
     std::ifstream stream(path.c_str(), std::ios::binary);
 
     if (stream){
         stream >> std::noskipws;
         std::copy(std::istream_iterator<char>(stream), std::istream_iterator<char>(), back_inserter(buffer));
+        std::cout << "[ReadFile] Read File from " << path << " Successed\n";
+    } else{
+        std::cout << "[ReadFile] ERROR: Read File from " << path << " Failed !!!!\n";
     }
 
     return buffer;
@@ -41,10 +45,11 @@ static std::string readFile(const std::string& path){
  * \param[in] size 数据大小
  * \param[in] path 文件路径
 */
-static void writeFile(void* buffer, size_t size, const std::string& path) {
+void writeFile(void* buffer, size_t size, const std::string& path) {
     std::ofstream stream(path.c_str(), std::ios::binary);
     if(stream){
         stream.write(static_cast<char*>(buffer), size);
+        std::cout << "[WriteFile] Write File to " << path << " Successed\n";
     }
 }
 
@@ -52,41 +57,24 @@ static void writeFile(void* buffer, size_t size, const std::string& path) {
  * \param[in] onnx_model_path onnx模型文件路径
  * \return cuda 推理引擎
 */
-static ICudaEngine* createCudaEngine(const std::string& onnx_model_path){
+ICudaEngine* createCudaEngine(const std::string& onnx_model_path){
     const auto explicit_batch = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     std::unique_ptr<IBuilder, Destroy<IBuilder>> builder{createInferBuilder(global_logger)};
     std::unique_ptr<INetworkDefinition, Destroy<INetworkDefinition>> network{builder->createNetworkV2(explicit_batch)};
     std::unique_ptr<nvonnxparser::IParser, Destroy<nvonnxparser::IParser>> parser{nvonnxparser::createParser(*network, global_logger)};
     std::unique_ptr<IBuilderConfig, Destroy<IBuilderConfig>> config{builder->createBuilderConfig()};
 
-    /* 遍历网络的每一层, 判断其权重类型是否为 DataType::kHALF */
-    for (int i = 0; i < network->getNbLayers(); i++){
-        ILayer* layer_base = network->getLayer(i);
-        LayerType layer_type = layer_base->getType();
-        IConstantLayer* layer = (IConstantLayer*)layer_base;
-        const Weights& weight = ((IConstantLayer*)layer)->getWeights();
-        if (weight.count == 0) continue;
-
-        const char* layer_name = layer->getName();
-        if (weight.type != DataType::kHALF) {
-            printf("ERROR: the data type of weight %d[%s] is [%d]\n", i, layer_name, (int)weight.type);
-            return 0;
-        }
-    }
-
     /* 从 onnx 文件中解析模型 */
     if (!parser->parseFromFile(onnx_model_path.c_str(), static_cast<int>(ILogger::Severity::kINFO))) {
-        std::cout << "ERROR: could not parse input engine." << std::endl;
+        std::cout << "[CreateCudaEngine] ERROR: Parse Input Engine Failed !!!\n";
         return nullptr;
+    } else {
+        std::cout << "[CreateCudaEngine] Parse Input Engine Successed\n";
     }
 
     /* 设置网络创建信息 */
     config->setMaxWorkspaceSize(1ull << 33); // 显存512MB
-    config->setFlag(BuilderFlag::kFP16);
     builder->setMaxBatchSize(512 * 512);
-    if (builder->platformHasFastFp16()) {
-        std::cout << "PlatformHasFastFP16" << std::endl;
-    }
 
     /* 创建优化配置 */
     auto profile = builder->createOptimizationProfile();
@@ -106,28 +94,34 @@ static ICudaEngine* createCudaEngine(const std::string& onnx_model_path){
  * \param[in] model_path 文件路径
  * \return cuda 推理引擎
 */
-static ICudaEngine* getCudaEngine(const std::string& model_path){
+ICudaEngine* getCudaEngine(const std::string& model_path){
     ICudaEngine* engine{nullptr};
 
     /* 读取 onnx 文件 */
     std::string buffer = readFile(model_path);
-    std::cout << "Read model from path: " << model_path << std::endl;
+    std::cout << "[GetCudaEngine] Read model from path: " << model_path << std::endl;
 
     /* 尝试 deserialize 引擎*/
-    if (buffer.size()) { 
+    if (buffer.size()) {
         auto runtime = createInferRuntime(global_logger);
         engine = runtime->deserializeCudaEngine(buffer.data(), buffer.size(), nullptr);
+        if(engine){
+            std::cout << "[GetCudaEngine] Deserialize Cuda Engine Successed\n";
+        } else {
+            std::cout << "[GetCudaEngine] Deserialize Cuda Engine Failed, Try To Build TensorRT Engine\n";
+        }
     }
 
     /* 创建 cuda 推理引擎*/
     if (!engine) {
         engine = createCudaEngine(model_path);
         if (engine) {
-            std::unique_ptr<IHostMemory, Destroy<IHostMemory>> engine_plan{engine->serialize()};
+            std::cout << "[GetCudaEngine] Build TensorRT Engine Successed\n";
             // 保存为 tensorRT 的文件格式, 供后续使用
-            writeFile(engine_plan->data(), engine_plan->size(), model_path);
+            // std::unique_ptr<IHostMemory, Destroy<IHostMemory>> engine_plan{engine->serialize()};
+            // writeFile(engine_plan->data(), engine_plan->size(), model_path);
         } else {
-            std::cerr << "TensorRT engine build failed !!!\n";
+            std::cout << "[GetCudaEngine] ERROR: Build TensorRT Engine Failed !!!\n";
         }
     }
 
@@ -143,10 +137,10 @@ void TensorRTUtils::initTensorRT(const std::string& model_path) {
     context.reset(engine->createExecutionContext());
 
     /* 输出 binding 信息*/
-    std::cout << "Engine has binding num: " << engine->getNbBindings() << std::endl;
+    std::cout << "[InitTensorRT] Engine has binding num: " << engine->getNbBindings() << std::endl;
     Dims dims_input{ context->getBindingDimensions(0) };
     std::cout << " dim: [";
-    for (int k = 0; k < dims_input.nbDims; k++) 
+    for (int k = 0; k < dims_input.nbDims; k++)
         std::cout << dims_input.d[k] << ", ";
     std::cout << "]" << '\n';
 

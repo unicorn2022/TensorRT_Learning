@@ -3,7 +3,7 @@
 using namespace nvinfer1;
 
 // 文件路径
-const std::string model_file {"./model.plan"};
+const std::string model_file {"E:\\MyProject\\AI\\TensorRT_Learning\\02-TensorRT-cmake\\model\\arm.plan"};
 // 创建 Logger, 包含的日志等级为: VERBOSE, INFO, WARNING, ERRROR, INTERNAL_ERROR
 static Logger gLogger(ILogger::Severity::kERROR);
 
@@ -77,8 +77,11 @@ private:
 private:
     bool load_model_from_file(const std::string file) {
         std::cout << "*********************************************\n";
-        std::cout << "载入 .plan 序列化网络模型:\n";
-        if (_access(file.c_str(), 0) != 0) return false;
+        std::cout << "载入 .plan 序列化网络模型: " << file << "\n";
+        if (_access(file.c_str(), 0) != 0) {
+            std::cout << "文件: " << file << "不存在\n";
+            return false;
+        }
          
         std::ifstream engineFile(file, std::ios::binary);
         long int fsize = 0;
